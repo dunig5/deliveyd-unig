@@ -71,9 +71,9 @@
             const contenedor = document.getElementById('contenedor-pedidos-repartidor');
             contenedor.innerHTML = `<div class="text-center py-6 text-neutral-500 font-mono text-xs">Sincronizando comercios afiliados...</div>`;
 
-            // Consulta integrada con las columnas exactas de la tabla ordenes_vip
+            // Consulta conectada a la nueva tabla ordenes_central
             const { data, error } = await supabaseClient
-                .from('ordenes_vip')
+                .from('ordenes_central')
                 .select('*')
                 .order('id', { ascending: false })
                 .limit(15);
@@ -130,7 +130,7 @@
 
         async function cambiarEstadoPedido(idOrden, nuevoEstado) {
             const { error } = await supabaseClient
-                .from('ordenes_vip')
+                .from('ordenes_central')
                 .update({ estado: nuevoEstado })
                 .eq('id', idOrden);
 
