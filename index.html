@@ -71,7 +71,7 @@
             const contenedor = document.getElementById('contenedor-pedidos-repartidor');
             contenedor.innerHTML = `<div class="text-center py-6 text-neutral-500 font-mono text-xs">Sincronizando comercios afiliados...</div>`;
 
-            // Traemos las órdenes de la tabla general (se pueden filtrar o mostrar todas las de la red de comercios)
+            // Consulta integrada con las columnas exactas de la tabla ordenes_vip
             const { data, error } = await supabaseClient
                 .from('ordenes_vip')
                 .select('*')
@@ -87,7 +87,7 @@
                 contenedor.innerHTML = "";
                 data.forEach(orden => {
                     const estadoColor = orden.estado === 'Aceptado' ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30';
-                    const nombreComercio = orden.comercio || orden.nombre_comercio || 'Comercio Afiliado';
+                    const nombreComercio = orden.comercio || 'Comercio Afiliado';
                     const costoDelivery = parseFloat(orden.costo_delivery || 0).toFixed(2);
                     
                     contenedor.innerHTML += `
@@ -100,7 +100,6 @@
                                 </div>
                                 <p class="text-xs text-neutral-300 font-medium"><strong>Productos:</strong> ${orden.productos}</p>
                                 
-                                <!-- Se eliminó totalmente el "Total a Cobrar" por seguridad -->
                                 <div class="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-xl">
                                     <i data-lucide="dollar-sign" class="w-4 h-4 text-amber-400"></i>
                                     <span class="text-xs font-mono font-bold text-amber-300">Tu Ganancia por Delivery: $${costoDelivery}</span>
