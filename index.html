@@ -90,11 +90,11 @@
                     const nombreComercio = orden.comercio || 'Comercio Afiliado';
                     const costoDelivery = parseFloat(orden.costo_delivery || 0).toFixed(2);
                     
-                    // Definimos los botones dinámicamente según el estado
+                    // Definimos los botones dinámicamente según el estado (botón GPS en color verde esmeralda)
                     let botonesAccion = '';
                     if (esAceptado) {
                         botonesAccion = `
-                            <button onclick="prepararRutaGPS('${orden.coordenadas_gps}', ${orden.id})" class="flex-1 md:flex-initial bg-amber-500 hover:bg-amber-400 text-black font-futurista text-[10px] uppercase font-black px-5 py-3 rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-lg transition-colors">
+                            <button onclick="prepararRutaGPS('${orden.coordenadas_gps}', ${orden.id})" class="flex-1 md:flex-initial bg-emerald-500 hover:bg-emerald-400 text-black font-futurista text-[10px] uppercase font-black px-5 py-3 rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-lg transition-colors">
                                 <i data-lucide="map" class="w-4 h-4"></i> Ver Ruta GPS
                             </button>
                         `;
@@ -119,12 +119,6 @@
                                 <div class="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-xl">
                                     <i data-lucide="dollar-sign" class="w-4 h-4 text-amber-400"></i>
                                     <span class="text-xs font-mono font-bold text-amber-300">Tu Ganancia por Delivery: $${costoDelivery}</span>
-                                </div>
-
-                                <div class="block">
-                                    <span class="text-[11px] text-neutral-400 font-mono bg-neutral-900/80 px-2.5 py-1 rounded-lg border border-neutral-800 inline-block">
-                                        📍 <strong>GPS Cliente:</strong> ${orden.coordenadas_gps || 'No especificada'}
-                                    </span>
                                 </div>
                             </div>
                             
