@@ -147,25 +147,30 @@
             }
         }
 
-        function prepararRutaGPS(coords, idOrden) {
-            if (!coords || coords === "null" || coords === "undefined") {
-                alert("Esta orden no contiene coordenadas GPS válidas.");
-                return;
-            }
+        function prepararRutaGPS(coords, idOrden, direccionComercio) {
+    if (!coords || coords === "null" || coords === "undefined") {
+        alert("Esta orden no contiene coordenadas GPS válidas.");
+        return;
+    }
 
-            navigator.clipboard.writeText(coords).then(() => {
-                console.log("Coordenadas copiadas:", coords);
-            }).catch(err => {
-                console.error("Error al copiar al portapapeles", err);
-            });
+    // Validar estrictamente que exista la dirección del comercio en la orden
+    if (!direccionComercio || direccionComercio === "null" || direccionComercio === "" || direccionComercio === "undefined") {
+        alert(`Error: La orden #${idOrden} no tiene una dirección de comercio registrada.`);
+        return;
+    }
 
-            const urlMapsComercio = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(COMERCIO_DIRECCION)}`;
+    navigator.clipboard.writeText(coords).then(() => {
+        console.log("Coordenadas copiadas:", coords);
+    }).catch(err => {
+        console.error("Error al copiar al portapapeles", err);
+    });
+
+    // Se usa única y exclusivamente la dirección que pertenece a este comercio en la BD
+    const urlMapsComercio = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(direccionComercio)}`;
+    
+    window.open(urlMapsComercio, '_blank');
+}
             
-            alert(`✅ ¡Ubicación del cliente copiada!\n\nSe abrirá Google Maps hacia el comercio afiliado. Al retirar el producto, mantén presionado el buscador y pega la ubicación para entregar la Orden #${idOrden}.`);
-
-            window.open(urlMapsComercio, '_blank');
-        }
-
         window.addEventListener('DOMContentLoaded', () => {
             cargarPedidosEntrantes();
             lucide.createIcons();
