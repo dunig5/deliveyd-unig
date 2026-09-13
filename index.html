@@ -87,14 +87,16 @@
                 data.forEach(orden => {
                     const esAceptado = orden.estado === 'Aceptado';
                     const estadoColor = esAceptado ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30';
-                    const nombreComercio = orden.comercio || 'Comercio Afiliado';
+                    const nombreComercio = orden.comercio || orden.nombre || 'Comercio Afiliado';
                     const costoDelivery = parseFloat(orden.costo_delivery || 0).toFixed(2);
                     
-                    // Definimos los botones dinámicamente según el estado (botón GPS en color verde esmeralda)
+                    // Aseguramos pasar el nombre/dirección del comercio como texto seguro a la función
+                    const comercioSeguro = nombreComercio.replace(/'/g, "\\'");
+                    
                     let botonesAccion = '';
                     if (esAceptado) {
                         botonesAccion = `
-                            <button onclick="prepararRutaGPS('${orden.coordenadas_gps}', ${orden.id})" class="flex-1 md:flex-initial bg-emerald-500 hover:bg-emerald-400 text-black font-futurista text-[10px] uppercase font-black px-5 py-3 rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-lg transition-colors">
+                            <button onclick="prepararRutaGPS('${orden.coordenadas_gps}', ${orden.id}, '${comercioSeguro}')" class="flex-1 md:flex-initial bg-emerald-500 hover:bg-emerald-400 text-black font-futurista text-[10px] uppercase font-black px-5 py-3 rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-lg transition-colors">
                                 <i data-lucide="map" class="w-4 h-4"></i> Ver Ruta GPS
                             </button>
                         `;
@@ -114,7 +116,7 @@
                                     <span class="text-[9px] uppercase px-2 py-0.5 rounded-full border font-bold bg-neutral-900 text-stone-300 border-neutral-700">🏪 ${nombreComercio}</span>
                                     <span class="text-[9px] uppercase px-2 py-0.5 rounded-full border font-bold ${estadoColor}">${orden.estado || 'Pendiente'}</span>
                                 </div>
-                                <p class="text-xs text-neutral-300 font-medium"><strong>Productos:</strong> ${orden.productos}</p>
+                                <p class="text-xs text-neutral-300 font-medium"><strong>Productos:</strong> ${orden.productos || orden.detalles}</p>
                                 
                                 <div class="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-xl">
                                     <i data-lucide="dollar-sign" class="w-4 h-4 text-amber-400"></i>
@@ -148,28 +150,27 @@
         }
 
         function prepararRutaGPS(coords, idOrden, direccionComercio) {
-    if (!coords || coords === "null" || coords === "undefined") {
-        alert("Esta orden no contiene coordenadas GPS válidas.");
-        return;
-    }
+            if (!coords || coords === "null" || coords === "undefined") {
+                alert("Esta orden no contiene coordenadas GPS válidas.");
+                return;
+            }
 
-    // Validar estrictamente que exista la dirección del comercio en la orden
-    if (!direccionComercio || direccionComercio === "null" || direccionComercio === "" || direccionComercio === "undefined") {
-        alert(`Error: La orden #${idOrden} no tiene una dirección de comercio registrada.`);
-        return;
-    }
+            // Validar estrictamente que exista la dirección del comercio
+            if (!direccionComercio || direccionComercio === "null" || direccionComercio === "" || direccionComercio === "undefined") {
+                alert(`Error: La orden #${idOrden} no tiene una dirección o comercio registrado en la base de datos.`);
+                return;
+            }
 
-    navigator.clipboard.writeText(coords).then(() => {
-        console.log("Coordenadas copiadas:", coords);
-    }).catch(err => {
-        console.error("Error al copiar al portapapeles", err);
-    });
+            navigator.clipboard.writeText(coords).then(() => {
+                console.log("Coordenadas copiadas:", coords);
+            }).catch(err => {
+                console.error("Error al copiar al portapapeles", err);
+            });
 
-    // Se usa única y exclusivamente la dirección que pertenece a este comercio en la BD
-    const urlMapsComercio = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(direccionComercio)}`;
-    
-    window.open(urlMapsComercio, '_blank');
-}
+            // Abre Google Maps buscando la dirección exacta del comercio registrada en la orden
+            const urlMapsComercio = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(direccionComercio)}`;
+            window.open(urlMapsComercio, '_blank');
+        }
             
         window.addEventListener('DOMContentLoaded', () => {
             cargarPedidosEntrantes();
