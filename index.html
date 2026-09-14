@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>D'UNIG LUXURY- Panel de Repartidor Multicomercio</title>
+    <title>D'UNIG LUXURY - Panel de Repartidor Multicomercio</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -18,7 +18,10 @@
 </head>
 <body class="min-h-screen flex flex-col justify-between p-4 md:p-8">
 
-    <header class="max-w-4xl mx-auto w-full flex justify-between items-center pb-6 border-b border-neutral-800">
+    <!-- Archivo de audio nativo infalible para notificaciones -->
+    <audio id="sonido-alerta" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+
+    <header class="max-w-4xl mx-auto w-full flex flex-col md:flex-row justify-between items-center gap-4 pb-6 border-b border-neutral-800">
         <div class="flex items-center gap-3">
             <div class="border border-amber-500/30 p-2.5 rounded-2xl bg-stone-950 text-amber-400 shadow-[0_0_15px_rgba(229,193,88,0.15)]">
                 <i data-lucide="bike" class="w-6 h-6"></i>
@@ -28,9 +31,17 @@
                 <p class="text-[9px] text-amber-500 uppercase tracking-widest font-bold">Red Multicomercio Afiliada</p>
             </div>
         </div>
-        <div class="flex items-center gap-2 bg-neutral-900 px-3 py-1.5 rounded-xl border border-neutral-800 text-xs font-mono">
-            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span class="text-emerald-400 font-bold">En Línea (Tiempo Real)</span>
+
+        <div class="flex items-center gap-3 flex-wrap justify-center">
+            <!-- Botón obligatorio de activación de audio por políticas del navegador -->
+            <button onclick="activarAudioManual()" id="btn-audio" class="bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/40 text-amber-400 text-xs px-3 py-2 rounded-xl flex items-center gap-2 cursor-pointer font-mono transition-colors">
+                <i data-lucide="volume-2" class="w-4 h-4"></i> Activar Alertas de Audio
+            </button>
+
+            <div class="flex items-center gap-2 bg-neutral-900 px-3 py-2 rounded-xl border border-neutral-800 text-xs font-mono">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span class="text-emerald-400 font-bold">En Línea (Tiempo Real)</span>
+            </div>
         </div>
     </header>
 
@@ -67,9 +78,38 @@
 
         const COMERCIO_DIRECCION_DEFECTO = "Vendaval House Merida"; 
 
-        // --- 1. FUNCIÓN DE ALERTA AUDITIVA (Opción 2: Doble Timbre Bip-Bip) ---
+        // --- 1. ACTIVACIÓN MANUAL (Obligatoria por seguridad del navegador) ---
+        function activarAudioManual() {
+            const audio = document.getElementById('sonido-alerta');
+            if (audio) {
+                audio.play().then(() => {
+                    audio.pause();
+                    audio.currentTime = 0;
+                    
+                    const btn = document.getElementById('btn-audio');
+                    btn.innerHTML = `<i data-lucide="volume-2" class="w-4 h-4 text-emerald-400"></i> Alertas Activadas`;
+                    btn.className = "bg-emerald-500/10 border border-emerald-500/40 text-emerald-400 text-xs px-3 py-2 rounded-xl flex items-center gap-2 font-mono";
+                    lucide.createIcons();
+                    alert("¡Audio activado correctamente! Ahora sonará cada vez que llegue un pedido.");
+                }).catch(err => {
+                    console.log("Error al desbloquear audio:", err);
+                });
+            }
+        }
+
+        // --- 2. REPRODUCIR SONIDO AL ENTRAR EL PEDIDO ---
+        function reproducirAlertaAudio() {
+            const audio = document.getElementById('sonido-alerta');
+            if (audio) {
+                audio.currentTime = 0; // Reinicia el sonido por si llega otro seguido
+                audio.play().catch(err => {
+                    console.log("El navegador bloqueó el audio automático. Asegúrate de hacer clic en 'Activar Alertas de Audio' primero.", err);
+                });
+            }
+        }
+
+        // --- 3. TIEMPO REAL CON SUPABASE ---
         function inicializarEscuchaRealtime() {
-            // Usamos un nombre de canal único para evitar bloqueos de caché
             const canalId = 'ordenes-central-channel-' + Math.random();
             
             supabaseClient
@@ -197,7 +237,7 @@
             
         window.addEventListener('DOMContentLoaded', () => {
             cargarPedidosEntrantes();
-            inicializarEscuchaRealtime(); // Activa la escucha en tiempo real y alertas auditivas
+            inicializarEscuchaRealtime();
             lucide.createIcons();
         });
     </script>
