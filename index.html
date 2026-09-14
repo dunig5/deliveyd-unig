@@ -30,7 +30,7 @@
         </div>
         <div class="flex items-center gap-2 bg-neutral-900 px-3 py-1.5 rounded-xl border border-neutral-800 text-xs font-mono">
             <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span class="text-emerald-400 font-bold">En Línea</span>
+            <span class="text-emerald-400 font-bold">En Línea (Tiempo Real)</span>
         </div>
     </header>
 
@@ -65,7 +65,54 @@
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtYWlzaGdhaHl6bGhzendhb3pnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ5MjMxMzEsImV4cCI6MjEwMDQ5OTEzMX0.8JVrpQKocnyZa3qLxsX9ZxjygYy4QY3kp_VSvrL1qNQ";
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        const COMERCIO_DIRECCION = "Vendaval House Merida"; 
+        const COMERCIO_DIRECCION_DEFECTO = "Vendaval House Merida"; 
+
+        // --- 1. FUNCIÓN DE ALERTA AUDITIVA SUTIL (Web Audio API) ---
+        function reproducirAlertaAudio() {
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContext) return;
+                const audioCtx = new AudioContext();
+
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // Nota D5
+                osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.15); // Sube a A5
+
+                gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.4);
+            } catch (e) {
+                console.log("El audio requiere interacción previa del usuario en el navegador.", e);
+            }
+        }
+
+        // --- 2. ACTIVAR SUPABASE REALTIME PARA NUEVOS PEDIDOS ---
+        function inicializarEscuchaRealtime() {
+            supabaseClient
+                .channel('cambios-ordenes-central')
+                .on(
+                    'postgres_changes',
+                    {
+                        event: 'INSERT',
+                        schema: 'public',
+                        table: 'ordenes_central'
+                    },
+                    (payload) => {
+                        console.log('¡Nuevo pedido detectado en tiempo real!', payload.new);
+                        reproducirAlertaAudio();
+                        cargarPedidosEntrantes(); // Refresca la lista automáticamente
+                    }
+                )
+                .subscribe();
+        }
 
         async function cargarPedidosEntrantes() {
             const contenedor = document.getElementById('contenedor-pedidos-repartidor');
@@ -87,16 +134,16 @@
                 data.forEach(orden => {
                     const esAceptado = orden.estado === 'Aceptado';
                     const estadoColor = esAceptado ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30';
-                    const nombreComercio = orden.comercio || orden.nombre || 'Comercio Afiliado';
+                    const nombreComercio = orden.comercio_nombre || orden.comercio || 'Comercio Afiliado';
+                    const direccionComercio = orden.comercio_direccion || orden.comercio || COMERCIO_DIRECCION_DEFECTO;
                     const costoDelivery = parseFloat(orden.costo_delivery || 0).toFixed(2);
                     
-                    // Aseguramos pasar el nombre/dirección del comercio como texto seguro a la función
-                    const comercioSeguro = nombreComercio.replace(/'/g, "\\'");
+                    const direccionSegura = direccionComercio.replace(/'/g, "\\'");
                     
                     let botonesAccion = '';
                     if (esAceptado) {
                         botonesAccion = `
-                            <button onclick="prepararRutaGPS('${orden.coordenadas_gps}', ${orden.id}, '${comercioSeguro}')" class="flex-1 md:flex-initial bg-emerald-500 hover:bg-emerald-400 text-black font-futurista text-[10px] uppercase font-black px-5 py-3 rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-lg transition-colors">
+                            <button onclick="prepararRutaGPS('${orden.coordenadas_gps}', ${orden.id}, '${direccionSegura}')" class="flex-1 md:flex-initial bg-emerald-500 hover:bg-emerald-400 text-black font-futurista text-[10px] uppercase font-black px-5 py-3 rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-lg transition-colors">
                                 <i data-lucide="map" class="w-4 h-4"></i> Ver Ruta GPS
                             </button>
                         `;
@@ -116,7 +163,7 @@
                                     <span class="text-[9px] uppercase px-2 py-0.5 rounded-full border font-bold bg-neutral-900 text-stone-300 border-neutral-700">🏪 ${nombreComercio}</span>
                                     <span class="text-[9px] uppercase px-2 py-0.5 rounded-full border font-bold ${estadoColor}">${orden.estado || 'Pendiente'}</span>
                                 </div>
-                                <p class="text-xs text-neutral-300 font-medium"><strong>Productos:</strong> ${orden.productos || orden.detalles}</p>
+                                <p class="text-xs text-neutral-300 font-medium"><strong>Productos:</strong> ${orden.productos}</p>
                                 
                                 <div class="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-xl">
                                     <i data-lucide="dollar-sign" class="w-4 h-4 text-amber-400"></i>
@@ -155,9 +202,8 @@
                 return;
             }
 
-            // Validar estrictamente que exista la dirección del comercio
             if (!direccionComercio || direccionComercio === "null" || direccionComercio === "" || direccionComercio === "undefined") {
-                alert(`Error: La orden #${idOrden} no tiene una dirección o comercio registrado en la base de datos.`);
+                alert(`Error: La orden #${idOrden} no tiene una dirección de comercio registrada.`);
                 return;
             }
 
@@ -167,13 +213,13 @@
                 console.error("Error al copiar al portapapeles", err);
             });
 
-            // Abre Google Maps buscando la dirección exacta del comercio registrada en la orden
             const urlMapsComercio = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(direccionComercio)}`;
             window.open(urlMapsComercio, '_blank');
         }
             
         window.addEventListener('DOMContentLoaded', () => {
             cargarPedidosEntrantes();
+            inicializarEscuchaRealtime(); // Activa la escucha en tiempo real y alertas auditivas
             lucide.createIcons();
         });
     </script>
