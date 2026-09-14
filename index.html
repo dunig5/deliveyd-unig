@@ -68,52 +68,12 @@
         const COMERCIO_DIRECCION_DEFECTO = "Vendaval House Merida"; 
 
         // --- 1. FUNCIÓN DE ALERTA AUDITIVA (Opción 2: Doble Timbre Bip-Bip) ---
-        function reproducirAlertaAudio() {
-            try {
-                if (!audioCtxGlobal) {
-                    const AudioContext = window.AudioContext || window.webkitAudioContext;
-                    if (!AudioContext) return;
-                    audioCtxGlobal = new AudioContext();
-                }
-                if (audioCtxGlobal.state === 'suspended') {
-                    audioCtxGlobal.resume();
-                }
-
-                const now = audioCtxGlobal.currentTime;
-
-                // Primer tono (Nota E5)
-                const osc1 = audioCtxGlobal.createOscillator();
-                const gain1 = audioCtxGlobal.createGain();
-                osc1.type = 'sine';
-                osc1.frequency.setValueAtTime(659.25, now);
-                gain1.gain.setValueAtTime(0.15, now);
-                gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-                osc1.connect(gain1); 
-                gain1.connect(audioCtxGlobal.destination);
-                osc1.start(now); 
-                osc1.stop(now + 0.15);
-
-                // Segundo tono más agudo (Nota B5)
-                const osc2 = audioCtxGlobal.createOscillator();
-                const gain2 = audioCtxGlobal.createGain();
-                osc2.type = 'sine';
-                osc2.frequency.setValueAtTime(987.77, now + 0.18);
-                gain2.gain.setValueAtTime(0.15, now + 0.18);
-                gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
-                osc2.connect(gain2); 
-                gain2.connect(audioCtxGlobal.destination);
-                osc2.start(now + 0.18); 
-                osc2.stop(now + 0.35);
-
-            } catch (e) {
-                console.log("El audio requiere interacción previa del usuario en el navegador.", e);
-            }
-        }
-
-        // --- 2. ACTIVAR SUPABASE REALTIME PARA NUEVOS PEDIDOS ---
         function inicializarEscuchaRealtime() {
+            // Usamos un nombre de canal único para evitar bloqueos de caché
+            const canalId = 'ordenes-central-channel-' + Math.random();
+            
             supabaseClient
-                .channel('cambios-ordenes-central')
+                .channel(canalId)
                 .on(
                     'postgres_changes',
                     {
@@ -124,10 +84,12 @@
                     (payload) => {
                         console.log('¡Nuevo pedido detectado en tiempo real!', payload.new);
                         reproducirAlertaAudio();
-                        cargarPedidosEntrantes(); // Refresca la lista automáticamente[cite: 3]
+                        cargarPedidosEntrantes();
                     }
                 )
-                .subscribe();
+                .subscribe((status) => {
+                    console.log("Estado de la conexión Realtime:", status);
+                });
         }
 
         async function cargarPedidosEntrantes() {
